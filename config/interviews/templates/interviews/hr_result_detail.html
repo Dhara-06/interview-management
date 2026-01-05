@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Result - {{ result.candidate.username }} / {{ result.interview.title }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+
+<h2>Result: {{ result.candidate.username }} — {{ result.interview.title }}</h2>
+
+<p><strong>Overall Score:</strong> {{ result.overall_score }}</p>
+<p><strong>Overall Feedback:</strong></p>
+<pre style="background:#fff;border:1px solid #ddd;padding:10px">{{ result.overall_feedback }}</pre>
+
+<h3>Per-question breakdown</h3>
+<table class="table table-striped">
+    <thead>
+        <tr><th>#</th><th>Question</th><th>Answer</th><th>AI Score</th><th>AI Feedback</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+    {% for a in answers %}
+        <tr>
+            <td>{{ a.question_number }}</td>
+            <td style="max-width:300px; white-space:pre-wrap;">{{ a.question }}</td>
+            <td style="max-width:300px; white-space:pre-wrap;">{{ a.answer }}</td>
+            <td>{{ a.ai_score }}</td>
+            <td style="max-width:300px; white-space:pre-wrap;">{{ a.ai_feedback }}</td>
+            <td>
+                <form method="post" action="{% url 'delete_answer' a.id %}" style="display:inline" onsubmit="return confirm('Delete this answer?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<p><a href="{% url 'hr_results' %}">⬅ Back to Results</a></p>
+    {% if result.id %}
+        <form method="post" action="{% url 'hr_delete_result' result.id %}" class="d-inline" onsubmit="return confirm('Delete this result? This action cannot be undone.');">
+            {% csrf_token %}
+            <button class="btn btn-danger btn-sm float-end" type="submit">Delete Result</button>
+        </form>
+    {% endif %}
+
+</div>
+</body>
+</html>

@@ -122,3 +122,4 @@ LOGIN_URL = '/login/'
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+GEMINI_CALLBACK_TOKEN = 'replace-with-strong-secret'

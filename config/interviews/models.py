@@ -38,3 +38,20 @@ class InterviewAnswer(models.Model):
 
     def __str__(self):
         return f"{self.candidate.username} - {self.interview.title} (Q{self.question_number})"
+
+
+class InterviewResult(models.Model):
+    """Overall interview evaluation stored when the AI/tool completes evaluation."""
+    interview = models.ForeignKey(Interview, on_delete=models.CASCADE)
+    candidate = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    overall_score = models.IntegerField(null=True, blank=True)
+    overall_feedback = models.TextField(blank=True)
+
+    # Keep raw JSON payload from the tool for auditing/debugging
+    raw_payload = models.JSONField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Result: {self.candidate.username} - {self.interview.title} ({self.overall_score})"

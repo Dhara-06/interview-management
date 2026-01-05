@@ -7,6 +7,12 @@ from django.contrib import messages
 from accounts.models import Profile
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.db.models import Avg, Max
+from types import SimpleNamespace
+from django.conf import settings
+from django.contrib.auth.models import User
+from .models import InterviewResult, InterviewAnswer
+import json
 
 @login_required
 def interview_detail(request, interview_id):
@@ -86,10 +92,9 @@ def interview_session(request, interview_id):
 
 @login_required
 def hr_view_answers(request):
-    answers = InterviewAnswer.objects.select_related("interview", "candidate")
-    return render(request, "interviews/hr_answers.html", {
-        "answers": answers
-    })
+    # This view was removed; redirect to results.
+    from django.shortcuts import redirect
+    return redirect('hr_results')
 
 
 @login_required
@@ -161,8 +166,217 @@ def ai_chat(request, interview_id):
 
     return JsonResponse({"ok": True, "response": ai_response})
 
+
+@require_POST
+def api_callback(request, interview_id):
+    """Endpoint for external tool (e.g., Gemini tool use) to POST evaluation results.
+
+    Expected JSON body example:
+    {
+      "token": "<callback-token>" ,
+      "candidate_username": "user1",
+      "overall_score": 78,
+      "overall_feedback": "Good answers...",
+      "answers": [
+        {"question_number": 1, "question": "...", "answer": "...", "ai_score": 8, "ai_feedback":"..."},
+        ...
+      ]
+    }
+    """
+
+    # Simple token auth (compare to settings.GEMINI_CALLBACK_TOKEN)
+    try:
+        payload = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return JsonResponse({"ok": False, "error": "invalid_json"}, status=400)
+
+    token = payload.get('token') or request.headers.get('X-Callback-Token')
+    if not token or token != getattr(settings, 'GEMINI_CALLBACK_TOKEN', None):
+        return JsonResponse({"ok": False, "error": "forbidden"}, status=403)
+
+    candidate_username = payload.get('candidate_username')
+    if not candidate_username:
+        return JsonResponse({"ok": False, "error": "missing_candidate"}, status=400)
+
+    try:
+        candidate = User.objects.get(username=candidate_username)
+    except User.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "candidate_not_found"}, status=404)
+
+    interview = get_object_or_404(Interview, id=interview_id)
+
+    # Store / update per-answer results
+    answers = payload.get('answers', [])
+    for a in answers:
+        qnum = a.get('question_number')
+        question = a.get('question', '')
+        answer_text = a.get('answer', '')
+        ai_score = a.get('ai_score')
+        ai_feedback = a.get('ai_feedback', '')
+
+        if qnum is None:
+            continue
+
+        InterviewAnswer.objects.update_or_create(
+            interview=interview,
+            candidate=candidate,
+            question_number=qnum,
+            defaults={
+                'question': question,
+                'answer': answer_text,
+                'ai_score': ai_score,
+                'ai_feedback': ai_feedback,
+            }
+        )
+
+    # Store overall result
+    overall_score = payload.get('overall_score')
+    overall_feedback = payload.get('overall_feedback', '')
+
+    result = InterviewResult.objects.create(
+        interview=interview,
+        candidate=candidate,
+        overall_score=overall_score,
+        overall_feedback=overall_feedback,
+        raw_payload=payload,
+    )
+
+    return JsonResponse({"ok": True, "result_id": result.id})
+
+
 @login_required
+def hr_results(request):
+    # Show all results to HR users (could be filtered)
+    persisted = list(InterviewResult.objects.select_related('candidate', 'interview').order_by('-created_at'))
+
+    # Build a list of result objects. Start with persisted InterviewResult records.
+    results_list = []
+    existing_pairs = set()
+    for r in persisted:
+        results_list.append(r)
+        existing_pairs.add((r.interview_id, r.candidate_id))
+
+    # For any interview/candidate pairs that have answers but no InterviewResult yet,
+    # compute an aggregated score and include them as transient results.
+    agg = InterviewAnswer.objects.values('interview_id', 'candidate_id').annotate(
+        avg_score=Avg('ai_score'), last_seen=Max('created_at')
+    )
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    for a in agg:
+        pair = (a['interview_id'], a['candidate_id'])
+        if pair in existing_pairs:
+            continue
+        try:
+            interview = Interview.objects.get(id=a['interview_id'])
+            candidate = User.objects.get(id=a['candidate_id'])
+        except (Interview.DoesNotExist, User.DoesNotExist):
+            continue
+
+        pseudo = SimpleNamespace(
+            id=None,
+            interview=interview,
+            candidate=candidate,
+            overall_score=round(a['avg_score'] or 0, 1),
+            overall_feedback='(auto-aggregated from answers)',
+            created_at=a['last_seen']
+        )
+        results_list.append(pseudo)
+
+    # Sort by created_at desc
+    results_list.sort(key=lambda x: x.created_at or 0, reverse=True)
+
+    return render(request, "interviews/hr_results.html", {"results": results_list})
+
+
+@login_required
+def hr_view_result(request, result_id):
+    result = get_object_or_404(InterviewResult, id=result_id)
+    # Gather per-question answers for this interview & candidate
+    answers = InterviewAnswer.objects.filter(interview=result.interview, candidate=result.candidate).order_by('question_number')
+    return render(request, "interviews/hr_result_detail.html", {"result": result, "answers": answers})
+
+
+@login_required
+def hr_view_result_by_candidate(request, interview_id, candidate_id):
+    interview = get_object_or_404(Interview, id=interview_id)
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    candidate = get_object_or_404(User, id=candidate_id)
+
+    answers = InterviewAnswer.objects.filter(interview=interview, candidate=candidate).order_by('question_number')
+    avg = answers.aggregate(avg_score=Avg('ai_score'))['avg_score']
+
+    pseudo = SimpleNamespace(
+        id=None,
+        interview=interview,
+        candidate=candidate,
+        overall_score=round(avg or 0, 1),
+        overall_feedback='(auto-aggregated from answers)',
+        created_at=None,
+    )
+
+    return render(request, "interviews/hr_result_detail.html", {"result": pseudo, "answers": answers})
+
+@login_required
+@login_required
+@require_POST
 def delete_answer(request, answer_id):
     answer = get_object_or_404(InterviewAnswer, id=answer_id)
+
+    # Permission check: only HR users may delete candidate answers
+    try:
+        profile = Profile.objects.get(user=request.user)
+    except Profile.DoesNotExist:
+        messages.error(request, "Profile not found. Access denied.")
+        return redirect("hr_results")
+
+    if profile.role != "HR":
+        messages.error(request, "Only HR users can delete answers.")
+        return redirect("hr_results")
+
+    interview = answer.interview
+    candidate = answer.candidate
+
     answer.delete()
-    return redirect("hr_view_answers")
+    messages.success(request, "Answer deleted.")
+
+    # Prefer redirecting back to the page that submitted the delete (safe check)
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url and next_url.startswith('/'):
+        return redirect(next_url)
+
+    # If no next provided, prefer to show the result detail (persisted result if exists,
+    # otherwise the candidate-by-interview view)
+    try:
+        result = InterviewResult.objects.get(interview=interview, candidate=candidate)
+        return redirect('hr_view_result', result_id=result.id)
+    except InterviewResult.DoesNotExist:
+        return redirect('hr_view_result_by_candidate', interview_id=interview.id, candidate_id=candidate.id)
+
+
+@login_required
+@require_POST
+def hr_delete_result(request, result_id):
+    """Allow HR users to delete a persisted InterviewResult record."""
+    from django.shortcuts import redirect
+
+    # Permission check: ensure user is HR
+    try:
+        profile = Profile.objects.get(user=request.user)
+    except Profile.DoesNotExist:
+        messages.error(request, "Profile not found. Access denied.")
+        return redirect("hr_results")
+
+    if profile.role != "HR":
+        messages.error(request, "Only HR users can delete results.")
+        return redirect("hr_results")
+
+    result = get_object_or_404(InterviewResult, id=result_id)
+
+    # Delete only the aggregated/persisted InterviewResult record.
+    result.delete()
+    messages.success(request, "Result deleted successfully.")
+    return redirect("hr_results")

@@ -16,38 +16,45 @@ def register(request):
         form = RegisterForm(request.POST, request.FILES)
 
         if form.is_valid():
-            user = form.save(commit=False)
-            user.save()
-
+            # Server-side validation: require resume for candidates
             role = form.cleaned_data.get("role")
-            full_name = form.cleaned_data.get("full_name")
-            contact = form.cleaned_data.get("contact_number")
             resume_file = request.FILES.get("resume")
-
-            # Ensure a single Profile exists and set the chosen role and metadata.
-            profile, _ = Profile.objects.update_or_create(
-                user=user,
-                defaults={"role": role},
-            )
-
-            # Save candidate details (if provided)
-            if full_name:
-                profile.full_name = full_name
-            if contact:
-                profile.contact_number = contact
-            if resume_file:
-                profile.resume = resume_file
-
-            profile.save()
-
-            # Auto login
-            login(request, user)
-            messages.success(request, "Registration successful. Redirecting...")
-
-            # Redirect based on role
-            if role == "HR":
-                return redirect("hr_dashboard")
+            if role == "CANDIDATE" and not resume_file:
+                form.add_error('resume', 'Resume is required for candidates.')
+                messages.error(request, "Please provide a resume for candidate registration.")
+                # fall through to render form with errors
             else:
+                user = form.save(commit=False)
+                user.save()
+                # pull other fields after user saved
+                full_name = form.cleaned_data.get("full_name")
+                contact = form.cleaned_data.get("contact_number")
+
+                # Ensure a single Profile exists and set the chosen role and metadata.
+                profile, _ = Profile.objects.update_or_create(
+                    user=user,
+                    defaults={"role": role},
+                )
+
+                # Save candidate details (if provided)
+                if full_name:
+                    profile.full_name = full_name
+                if contact:
+                    profile.contact_number = contact
+                if resume_file:
+                    profile.resume = resume_file
+
+                profile.save()
+
+                # Auto login
+                login(request, user)
+                messages.success(request, "Registration successful. Redirecting...")
+
+                # Redirect based on role
+                if role == "HR":
+                    return redirect("hr_dashboard")
+                else:
+                    return redirect("candidate_dashboard")
                 return redirect("candidate_dashboard")
         else:
             # Provide feedback for debugging / user visibility

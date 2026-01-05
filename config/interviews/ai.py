@@ -2,15 +2,37 @@ from google import genai
 from google.genai.errors import ClientError
 from django.conf import settings
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 client = genai.Client(api_key=settings.GOOGLE_API_KEY)
 
-FALLBACK_QUESTIONS = [
-    "Explain the difference between Django ORM and raw SQL.",
-    "What is select_related vs prefetch_related in Django?",
-    "How does Django handle database migrations?",
-    "Explain Django middleware with an example.",
-    "What are Django signals and when would you use them?"
+# Fallback questions grouped by skill area. Used only when the API call fails.
+FALLBACK_BY_SKILL = {
+    'django': [
+        "Explain the difference between Django ORM and raw SQL.",
+        "What is select_related vs prefetch_related in Django?",
+        "How does Django handle database migrations?",
+        "Explain Django middleware with an example.",
+        "What are Django signals and when would you use them?",
+    ],
+    'frontend': [
+        "Explain the difference between CSS grid and flexbox and when to use each.",
+        "How does the browser's event loop work and how does it affect asynchronous JS?",
+        "What are the benefits of virtual DOM in frameworks like React?",
+        "Explain CORS and how to resolve common CORS issues in frontend apps.",
+        "How do you optimize web performance for critical rendering path?",
+    ],
+    'javascript': [
+        "Explain prototypal inheritance in JavaScript.",
+        "What are closures and where are they useful?",
+        "Describe event delegation and when you'd use it.",
+    ],
+}
+
+DEFAULT_FALLBACK = [
+    "Give a short, technical interview question about programming fundamentals.",
 ]
 
 def generate_question(interview):
@@ -44,9 +66,24 @@ Keep the question focused and unambiguous.
         )
         return response.text.strip()
 
-    except ClientError:
-        # 🔥 IMPORTANT: technical fallback, NOT generic
-        return random.choice(FALLBACK_QUESTIONS)
+    except ClientError as e:
+        # Log the error so we can see why the model call failed.
+        logger.exception("AI generate_question ClientError: %s", e)
+
+        # Choose a fallback based on keywords in required_skills or title
+        skills_text = (interview.required_skills or '') + ' ' + (interview.title or '')
+        skills_text = skills_text.lower()
+
+        if 'react' in skills_text or 'frontend' in skills_text or 'javascript' in skills_text or 'css' in skills_text:
+            pool = FALLBACK_BY_SKILL.get('frontend', DEFAULT_FALLBACK)
+        elif 'django' in skills_text or 'python' in skills_text or 'backend' in skills_text:
+            pool = FALLBACK_BY_SKILL.get('django', DEFAULT_FALLBACK)
+        elif 'javascript' in skills_text:
+            pool = FALLBACK_BY_SKILL.get('javascript', DEFAULT_FALLBACK)
+        else:
+            pool = DEFAULT_FALLBACK
+
+        return random.choice(pool)
 
 
 def evaluate_answer(question, answer):
