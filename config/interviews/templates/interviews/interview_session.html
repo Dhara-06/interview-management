@@ -16,8 +16,12 @@
 </p>
 
 <div class="progress mb-3">
-    <div class="progress-bar progress-bar-striped progress-bar-animated"
-         style="width: {{ progress }}%;">
+    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated"
+         role="progressbar"
+         data-progress="{{ progress|default:0 }}"
+         aria-valuenow="{{ progress|default:0 }}"
+         aria-valuemin="0"
+         aria-valuemax="100">
         {{ progress }}%
     </div>
 </div>
@@ -77,8 +81,20 @@ const interval = setInterval(()=>{
 }, 1000);
 </script>
 
+<script>
+// Apply progress width from data attribute to avoid template braces in CSS
+(function(){
+    const pb = document.getElementById('progress-bar');
+    if(pb){
+        const p = Number(pb.getAttribute('data-progress') || 0);
+        pb.style.width = p + '%';
+        pb.setAttribute('aria-valuenow', String(p));
+    }
+})();
+</script>
+
 <br>
-<a href="/candidate/dashboard/">Exit Interview</a>
+<a href="{% url 'candidate_dashboard' %}">Exit Interview</a>
 </div>
 </body>
 </html>

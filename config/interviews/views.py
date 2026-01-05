@@ -5,6 +5,8 @@ from .ai import generate_question, evaluate_answer
 from .forms import InterviewForm
 from django.contrib import messages
 from accounts.models import Profile
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 
 @login_required
 def interview_detail(request, interview_id):
@@ -140,6 +142,24 @@ def hr_edit_interview(request, interview_id):
         form = InterviewForm(instance=interview)
 
     return render(request, "interviews/hr_edit.html", {"form": form, "interview": interview})
+
+
+@login_required
+@require_POST
+def ai_chat(request, interview_id):
+    """Simple endpoint to handle chat messages from the candidate and return AI responses."""
+    interview = get_object_or_404(Interview, id=interview_id)
+
+    message = request.POST.get("message", "").strip()
+    if not message:
+        return JsonResponse({"ok": False, "error": "empty message"}, status=400)
+
+    # Lazy import to avoid circular issues
+    from .ai import chat_with_ai
+
+    ai_response = chat_with_ai(interview, message)
+
+    return JsonResponse({"ok": True, "response": ai_response})
 
 @login_required
 def delete_answer(request, answer_id):

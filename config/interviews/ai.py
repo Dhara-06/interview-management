@@ -17,14 +17,24 @@ def generate_question(interview):
     prompt = f"""
 You are an AI interviewer.
 
-Interview Role:
+Interview Title:
 {interview.title}
+
+Description:
+{interview.description}
 
 Required Skills:
 {interview.required_skills}
 
-Ask ONE clear, technical interview question related to this role.
-Do NOT ask generic questions like "Tell us about yourself".
+Responsibilities:
+{interview.responsibilities}
+
+Evaluation Criteria:
+{getattr(interview, 'evaluation_criteria', '')}
+
+Using the interview outline above, ask ONE clear, technical interview question related to this role.
+Do NOT ask generic or personal questions like "Tell us about yourself".
+Keep the question focused and unambiguous.
 """
 
     try:
@@ -66,3 +76,43 @@ Feedback: <text>
 
     except ClientError:
         return "Score: 5\nFeedback: Answer recorded successfully."
+
+
+def chat_with_ai(interview, message, role_hint="candidate"):
+    """Return an AI response for an arbitrary chat message, using the interview outline
+    as context. role_hint can be 'candidate' or 'system' to tune the prompt."""
+
+    prompt = f"""
+You are an AI interviewer assisting in a live interview session.
+
+Interview Title:
+{interview.title}
+
+Description:
+{interview.description}
+
+Required Skills:
+{interview.required_skills}
+
+Responsibilities:
+{interview.responsibilities}
+
+Evaluation Criteria:
+{getattr(interview, 'evaluation_criteria', '')}
+
+The candidate says:
+"{message}"
+
+Respond as the AI interviewer: give a concise reply, optionally asking a follow-up technical question or giving brief feedback. Keep responses short and focused.
+"""
+
+    try:
+        response = client.models.generate_content(
+            model="models/gemini-flash-lite-latest",
+            contents=prompt
+        )
+        return response.text.strip()
+
+    except ClientError:
+        # fallback
+        return "I'm sorry, I couldn't process that right now. Please try again."
