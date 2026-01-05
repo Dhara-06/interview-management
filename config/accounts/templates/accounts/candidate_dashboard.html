@@ -1,51 +1,91 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Candidate Dashboard</title>
-</head>
-<body>
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Candidate Dashboard | AI Interviewer</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            body { background: linear-gradient(180deg,#f8fafc 0%, #f1f5f9 100%); }
+            .card-hero { background: linear-gradient(90deg,#06b6d4,#7c3aed); color:#fff; }
+            .interview-card:hover{ box-shadow: 0 8px 20px rgba(2,6,23,0.06); transform: translateY(-3px); }
+        </style>
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="#">AI Interviewer</a>
+                <div>
+                    <a class="btn btn-outline-primary me-2" href="{% url 'candidate_dashboard' %}">Dashboard</a>
+                    <a class="btn btn-link text-danger ms-2" href="{% url 'logout' %}">Logout</a>
+                </div>
+            </div>
+        </nav>
 
-<h2>Welcome Candidate 👩‍🎓</h2>
+        <div class="container py-5">
+            <div class="row mb-4 align-items-center">
+                <div class="col-md-8">
+                    <h2 class="mb-0">Welcome, {{ request.user.get_full_name|default:request.user.username }}</h2>
+                    <p class="text-muted">Choose a skill set and start your AI-powered interview.</p>
+                </div>
+            </div>
 
-<h3>Available Interviews</h3>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Quick Start</h5>
+                            <p class="text-muted">Select an interview and begin. You'll get a series of role-specific technical questions.</p>
 
-{% if interviews %}
-    <form id="select-interview" method="get" action="">
-        <label for="interview">Choose a skill set / interview:</label>
-        <select id="interview" name="interview">
-            <option value="">-- select --</option>
-            {% for interview in interviews %}
-                <option value="{{ interview.id }}">{{ interview.title }} — {{ interview.required_skills|truncatechars:40 }}</option>
-            {% endfor %}
-        </select>
-        <button type="button" id="start-btn">Start Test</button>
-    </form>
+                            {% if interviews %}
+                                <div class="input-group">
+                                    <select id="interview-select" class="form-select">
+                                        <option value="">-- Select an interview --</option>
+                                        {% for interview in interviews %}
+                                            <option value="{{ interview.id }}">{{ interview.title }} — {{ interview.required_skills|truncatechars:40 }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button id="start-btn" class="btn btn-primary">Start Interview</button>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-info">No interviews available right now.</div>
+                            {% endif %}
 
-    <ul>
-        {% for interview in interviews %}
-            <li>
-                <strong>{{ interview.title }}</strong><br>
-                {{ interview.required_skills|truncatechars:100 }}<br>
-                <a href="/interviews/{{ interview.id }}/">Details</a>
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>No interviews available right now.</p>
-{% endif %}
+                        </div>
+                    </div>
+                </div>
 
-<script>
-document.getElementById('start-btn').addEventListener('click', function(){
-    var sel = document.getElementById('interview');
-    var id = sel.value;
-    if(!id){ alert('Select an interview first'); return; }
-    // Redirect to interview session start
-    window.location.href = '/interviews/' + id + '/start/';
-});
-</script>
+                <div class="col-md-6">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Available Interviews</h5>
+                            <div class="list-group">
+                                {% for interview in interviews %}
+                                    <a href="{% url 'interview_detail' interview.id %}" class="list-group-item list-group-item-action interview-card">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1">{{ interview.title }}</h6>
+                                            <small class="text-muted">{{ interview.created_at|date:'M d' }}</small>
+                                        </div>
+                                        <p class="mb-1 text-muted">{{ interview.required_skills|truncatechars:100 }}</p>
+                                        <small class="text-muted">Questions: <span class="badge bg-info text-dark">{{ interview.number_of_questions }}</span></small>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-<a href="{% url 'logout' %}">Logout</a>
+        </div>
 
-
-</body>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+            document.getElementById('start-btn')?.addEventListener('click', function(){
+                var sel = document.getElementById('interview-select');
+                var id = sel ? sel.value : null;
+                if(!id){ alert('Select an interview first'); return; }
+                window.location.href = '/interviews/' + id + '/start/';
+            });
+        </script>
+    </body>
 </html>

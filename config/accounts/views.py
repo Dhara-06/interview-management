@@ -119,8 +119,21 @@ def dashboard_redirect(request):
 @login_required
 def hr_dashboard(request):
     interviews = Interview.objects.filter(created_by=request.user)
+
+    # Try to get a friendly display name from Profile if available
+    try:
+        profile = Profile.objects.get(user=request.user)
+        hr_name = profile.full_name or request.user.get_full_name() or request.user.username
+    except Profile.DoesNotExist:
+        hr_name = request.user.get_full_name() or request.user.username
+
+    # Compute initials for a small avatar tag
+    initials = ''.join([p[0] for p in hr_name.split() if p])[:2].upper()
+
     return render(request, "accounts/hr_dashboard.html", {
-        "interviews": interviews
+        "interviews": interviews,
+        "hr_name": hr_name,
+        "hr_initials": initials,
     })
 
 
