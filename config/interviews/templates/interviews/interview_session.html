@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interview Session</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+</head>
+<body class="bg-light">
+<div class="container mt-5">
+
+<h2>{{ interview.title }}</h2>
+
+<p><strong>AI Interview Question:</strong></p>
+<p class="fw-bold">
+    Question {{ current_question }} of {{ total_questions }}
+</p>
+
+<div class="progress mb-3">
+    <div class="progress-bar progress-bar-striped progress-bar-animated"
+         style="width: {{ progress }}%;">
+        {{ progress }}%
+    </div>
+</div>
+
+<p>{{ question }}</p>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- IMPORTANT: store the question -->
+    <input type="hidden" name="question" value="{{ question }}">
+
+    <textarea
+        name="answer"
+        rows="6"
+        cols="60"
+        placeholder="Type your answer here..."
+        required>
+    </textarea>
+
+    <br><br>
+
+    <button type="submit">Submit Answer</button>
+</form>
+
+<br>
+<a href="/candidate/dashboard/">Exit Interview</a>
+</div>
+</body>
+</html>
+

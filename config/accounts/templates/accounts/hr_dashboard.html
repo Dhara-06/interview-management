@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HR Dashboard</title>
+</head>
+<body>
+
+<h2>Welcome HR 👩‍💼</h2>
+
+<!-- NEW LINK -->
+<p>
+    <a href="/interviews/hr/answers/">📋 View Candidate Answers</a>
+    &nbsp;|&nbsp;
+    <a href="/interviews/hr/create/">➕ Create Interview</a>
+</p>
+
+<h3>Your Interviews</h3>
+
+{% if interviews %}
+    <ul>
+        {% for interview in interviews %}
+            <li>
+                <strong>{{ interview.title }}</strong><br>
+                {{ interview.description|truncatechars:100 }}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No interviews created yet.</p>
+{% endif %}
+
+<a href="{% url 'logout' %}">Logout</a>
+
+
+</body>
+</html>
