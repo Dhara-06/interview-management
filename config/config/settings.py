@@ -120,3 +120,5 @@ USE_TZ = True
 STATIC_URL = 'static/'
 LOGIN_URL = '/login/'
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

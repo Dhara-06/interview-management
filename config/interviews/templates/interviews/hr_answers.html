@@ -73,6 +73,7 @@
             <tr>
                 <th>Candidate</th>
                 <th>Interview</th>
+                <th>Evaluation Criteria</th>
                 <th>Question</th>
                 <th>Answer</th>
                 <th>Score</th>
@@ -84,6 +85,7 @@
             <tr>
                 <td>{{ a.candidate.username }}</td>
                 <td>{{ a.interview.title }}</td>
+                <td style="max-width:220px; white-space:pre-wrap;">{{ a.interview.evaluation_criteria|default:"-" }}</td>
                 <td>{{ a.question }}</td>
                 <td>{{ a.answer }}</td>
                 <td class="score">{{ a.ai_score }}/10</td>

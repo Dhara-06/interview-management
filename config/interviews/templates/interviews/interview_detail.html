@@ -13,6 +13,10 @@
 <p><strong>Description:</strong> {{ interview.description }}</p>
 <p><strong>Required Skills:</strong> {{ interview.required_skills }}</p>
 <p><strong>Responsibilities:</strong> {{ interview.responsibilities }}</p>
+{% if interview.evaluation_criteria %}
+<p><strong>Evaluation Criteria:</strong></p>
+<pre style="background:#fff;border:1px solid #ddd;padding:10px">{{ interview.evaluation_criteria }}</pre>
+{% endif %}
 
 <br>
 

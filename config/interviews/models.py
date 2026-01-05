@@ -14,6 +14,8 @@ class Interview(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     number_of_questions = models.IntegerField(default=5)  # ✅ NEW
+    # Allows HR to specify evaluation criteria (rubric, scoring notes)
+    evaluation_criteria = models.TextField(blank=True)
 
     def __str__(self):
         return self.title

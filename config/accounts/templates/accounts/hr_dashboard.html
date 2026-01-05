@@ -22,6 +22,8 @@
             <li>
                 <strong>{{ interview.title }}</strong><br>
                 {{ interview.description|truncatechars:100 }}
+                <br>
+                <a href="{% url 'hr_edit_interview' interview.id %}">Edit</a>
             </li>
         {% endfor %}
     </ul>

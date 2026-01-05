@@ -9,6 +9,9 @@ class RegisterForm(forms.ModelForm):
     )
 
     password = forms.CharField(widget=forms.PasswordInput)
+    full_name = forms.CharField(required=False)
+    contact_number = forms.CharField(required=False)
+    resume = forms.FileField(required=False)
     role = forms.ChoiceField(choices=ROLE_CHOICES)
 
     class Meta:
@@ -21,9 +24,7 @@ class RegisterForm(forms.ModelForm):
 
         if commit:
             user.save()
-            Profile.objects.create(
-                user=user,
-                role=self.cleaned_data["role"]
-            )
+        return user
+
 
         return user

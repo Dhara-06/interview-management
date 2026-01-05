@@ -118,6 +118,29 @@ def hr_create_interview(request):
 
     return render(request, "interviews/hr_create.html", {"form": form})
 
+
+@login_required
+def hr_edit_interview(request, interview_id):
+    interview = get_object_or_404(Interview, id=interview_id)
+
+    # Only the creator (HR) may edit
+    if interview.created_by != request.user:
+        messages.error(request, "You do not have permission to edit this interview.")
+        return redirect("hr_dashboard")
+
+    if request.method == "POST":
+        form = InterviewForm(request.POST, instance=interview)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Interview updated successfully.")
+            return redirect("hr_dashboard")
+        else:
+            messages.error(request, "Please fix the errors below.")
+    else:
+        form = InterviewForm(instance=interview)
+
+    return render(request, "interviews/hr_edit.html", {"form": form, "interview": interview})
+
 @login_required
 def delete_answer(request, answer_id):
     answer = get_object_or_404(InterviewAnswer, id=answer_id)

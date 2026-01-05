@@ -13,21 +13,32 @@ from .models import Profile
 # =========================
 def register(request):
     if request.method == "POST":
-        form = RegisterForm(request.POST)
+        form = RegisterForm(request.POST, request.FILES)
 
         if form.is_valid():
             user = form.save(commit=False)
             user.save()
 
-            role = form.cleaned_data["role"]
+            role = form.cleaned_data.get("role")
+            full_name = form.cleaned_data.get("full_name")
+            contact = form.cleaned_data.get("contact_number")
+            resume_file = request.FILES.get("resume")
 
-            # Ensure a single Profile exists and set the chosen role.
-            # Use update_or_create to avoid IntegrityError when signals
-            # or other code already created the Profile.
-            Profile.objects.update_or_create(
+            # Ensure a single Profile exists and set the chosen role and metadata.
+            profile, _ = Profile.objects.update_or_create(
                 user=user,
                 defaults={"role": role},
             )
+
+            # Save candidate details (if provided)
+            if full_name:
+                profile.full_name = full_name
+            if contact:
+                profile.contact_number = contact
+            if resume_file:
+                profile.resume = resume_file
+
+            profile.save()
 
             # Auto login
             login(request, user)

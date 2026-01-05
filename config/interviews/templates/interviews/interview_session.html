@@ -22,6 +22,12 @@
     </div>
 </div>
 
+<div style="margin-bottom:12px;">
+    <strong>Time left for this question:</strong>
+    <span id="timer" style="font-size:1.1em;color:#d9534f;">--:--</span>
+    <small>(auto-submits when time expires)</small>
+</div>
+
 <p>{{ question }}</p>
 
 <form method="post">
@@ -42,6 +48,34 @@
 
     <button type="submit">Submit Answer</button>
 </form>
+
+<script>
+// Timer per question (seconds). You can adjust defaultSeconds as needed.
+const defaultSeconds = 120;
+let seconds = defaultSeconds;
+
+function formatTime(s){
+    const mm = String(Math.floor(s/60)).padStart(2,'0');
+    const ss = String(s%60).padStart(2,'0');
+    return mm+':'+ss;
+}
+
+const timerEl = document.getElementById('timer');
+timerEl.textContent = formatTime(seconds);
+
+const interval = setInterval(()=>{
+    seconds -= 1;
+    timerEl.textContent = formatTime(seconds);
+    if(seconds <= 0){
+        clearInterval(interval);
+        // If textarea is empty, insert note then submit
+        const ta = document.querySelector('textarea[name="answer"]');
+        if(ta && !ta.value.trim()) ta.value = '(no answer submitted)';
+        // submit the form
+        document.querySelector('form').submit();
+    }
+}, 1000);
+</script>
 
 <br>
 <a href="/candidate/dashboard/">Exit Interview</a>
