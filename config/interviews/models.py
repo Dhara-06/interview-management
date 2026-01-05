@@ -55,3 +55,21 @@ class InterviewResult(models.Model):
 
     def __str__(self):
         return f"Result: {self.candidate.username} - {self.interview.title} ({self.overall_score})"
+
+
+class AskedQuestion(models.Model):
+    """Record of a question shown to a candidate for a specific interview.
+
+    This helps ensure questions aren't repeated across sessions by the same candidate.
+    """
+    interview = models.ForeignKey(Interview, on_delete=models.CASCADE)
+    candidate = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    question_text = models.TextField()
+    displayed_at = models.DateTimeField(auto_now_add=True)
+    answered = models.BooleanField(default=False)
+
+    class Meta:
+        indexes = [models.Index(fields=["interview", "candidate"]) ]
+
+    def __str__(self):
+        return f"Asked: {self.candidate.username} - {self.interview.title} ({self.displayed_at})"

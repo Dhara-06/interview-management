@@ -70,7 +70,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-
+LOGGING = {
+  "version": 1,
+  "disable_existing_loggers": False,
+  "handlers": {"console": {"class": "logging.StreamHandler"}},
+  "root": {"level": "WARNING", "handlers": ["console"]},
+  "loggers": {
+    "config.interviews": {"handlers": ["console"], "level": "DEBUG", "propagate": False},
+    "interviews": {"handlers": ["console"], "level": "DEBUG", "propagate": False},
+  },
+}
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases

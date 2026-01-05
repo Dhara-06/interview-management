@@ -3,6 +3,8 @@ from google.genai.errors import ClientError
 from django.conf import settings
 import random
 import logging
+import difflib
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +37,7 @@ DEFAULT_FALLBACK = [
     "Give a short, technical interview question about programming fundamentals.",
 ]
 
-def generate_question(interview):
+def generate_question(interview, asked_questions=None):
     prompt = f"""
 You are an AI interviewer.
 
@@ -59,12 +61,87 @@ Do NOT ask generic or personal questions like "Tell us about yourself".
 Keep the question focused and unambiguous.
 """
 
+    # If provided, instruct the model not to repeat or paraphrase previously asked questions.
+    if asked_questions:
+        asked_text = "\n" + "\n".join([f"- {q}" for q in asked_questions if q])
+        prompt += f"\nDo NOT repeat or paraphrase the following questions; produce a different, distinct technical question:{asked_text}\n"
+    
+    # Trim prompt length if needed (avoid sending very large asked lists)
+    # Only include the most recent 12 asked questions to keep prompt concise.
+    # The caller should provide a sensible asked_questions list (recent first).
+
+    # log prompt for debugging (be careful in production — may contain PII)
+    logger.debug("AI generate_question prompt:\n%s", prompt)
+
     try:
-        response = client.models.generate_content(
-            model="models/gemini-flash-lite-latest",
-            contents=prompt
-        )
-        return response.text.strip()
+        # Helper: normalize text for fuzzy comparison
+        def _normalize(s: str) -> str:
+            s = (s or '').lower()
+            s = re.sub(r"[^a-z0-9\s]", " ", s)
+            s = re.sub(r"\s+", " ", s).strip()
+            return s
+
+        # Try generation up to N times if the model repeats or paraphrases a recent question
+        max_attempts = 4
+        similarity_threshold = 0.72
+        recent_norm = [_normalize(q) for q in (asked_questions or []) if q]
+
+        for attempt in range(max_attempts):
+            response = client.models.generate_content(
+                model="models/gemini-flash-lite-latest",
+                contents=prompt
+            )
+            text = response.text.strip()
+            norm_text = _normalize(text)
+            is_duplicate = False
+            if recent_norm:
+                for r in recent_norm:
+                    if not r:
+                        continue
+                    # Use difflib ratio to detect paraphrases/near-duplicates
+                    ratio = difflib.SequenceMatcher(None, norm_text, r).ratio()
+                    if ratio >= similarity_threshold:
+                        is_duplicate = True
+                        logger.info("AI question similarity %.2f >= %.2f; treating as duplicate (attempt %s)", ratio, similarity_threshold, attempt + 1)
+                        break
+
+            if is_duplicate and attempt < (max_attempts - 1):
+                # modify prompt slightly to push for different wording
+                prompt += "\nPlease produce a substantially different question than those listed above."
+                continue
+
+            # If the model returned something new, accept it
+            if not is_duplicate:
+                return text
+
+        # If we reach here, the model kept returning duplicates. Use a deterministic fallback
+        # that excludes recent questions.
+        logger.warning("AI generate_question repeated after %s attempts; using fallback pool", max_attempts)
+
+        # Build a fallback pool based on skills
+        skills_text = (interview.required_skills or '') + ' ' + (interview.title or '')
+        skills_text = skills_text.lower()
+
+        if 'react' in skills_text or 'frontend' in skills_text or 'javascript' in skills_text or 'css' in skills_text:
+            pool = list(FALLBACK_BY_SKILL.get('frontend', DEFAULT_FALLBACK))
+        elif 'django' in skills_text or 'python' in skills_text or 'backend' in skills_text:
+            pool = list(FALLBACK_BY_SKILL.get('django', DEFAULT_FALLBACK))
+        elif 'javascript' in skills_text:
+            pool = list(FALLBACK_BY_SKILL.get('javascript', DEFAULT_FALLBACK))
+        else:
+            pool = list(DEFAULT_FALLBACK)
+
+        # Exclude recent_norm entries
+        filtered = []
+        for p in pool:
+            if _normalize(p) not in recent_norm:
+                filtered.append(p)
+
+        if filtered:
+            return random.choice(filtered)
+
+        # Last resort: return any pool item
+        return random.choice(pool)
 
     except ClientError as e:
         # Log the error so we can see why the model call failed.

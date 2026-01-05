@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from .models import Interview, InterviewAnswer
+from .models import Interview, InterviewAnswer, InterviewResult, AskedQuestion
 from .ai import generate_question, evaluate_answer
 from .forms import InterviewForm
 from django.contrib import messages
@@ -11,7 +11,6 @@ from django.db.models import Avg, Max
 from types import SimpleNamespace
 from django.conf import settings
 from django.contrib.auth.models import User
-from .models import InterviewResult, InterviewAnswer
 import json
 
 @login_required
@@ -74,10 +73,46 @@ def interview_session(request, interview_id):
             ai_score=score
         )
 
+        # Mark any AskedQuestion records for this interview/candidate/question as answered
+        try:
+            AskedQuestion.objects.filter(
+                interview=interview,
+                candidate=request.user,
+                question_text=question,
+                answered=False
+            ).update(answered=True)
+        except Exception:
+            pass
+
         return redirect("interview_session", interview_id=interview.id)
 
     # 🟢 Generate NEXT question
-    question = generate_question(interview)
+    # Gather previously asked questions for this candidate & interview to avoid repeats
+    prev_answers = InterviewAnswer.objects.filter(interview=interview, candidate=request.user).order_by('-question_number')
+    asked_db = [a.question for a in prev_answers[:12]]
+
+    # Also track displayed (not-yet-saved) questions in session to avoid repeats
+    session_key = f"asked_{interview.id}_{request.user.id}"
+    asked_session = request.session.get(session_key, [])
+
+    # Combine DB + session (recent first)
+    asked = asked_db + asked_session
+
+    question = generate_question(interview, asked_questions=asked)
+
+    # Remember displayed question in session so subsequent generations avoid it
+    # Keep only the most recent 24 entries to limit session size
+    asked_session = [question] + asked_session
+    request.session[session_key] = asked_session[:24]
+    request.session.modified = True
+
+    # Persist displayed question so it's remembered across sessions
+    try:
+        if not AskedQuestion.objects.filter(interview=interview, candidate=request.user, question_text=question, answered=False).exists():
+            AskedQuestion.objects.create(interview=interview, candidate=request.user, question_text=question)
+    except Exception:
+        # If DB unavailable or other error, ignore—session will still prevent immediate repeats
+        logger = None
 
     progress = int((answered_count / total_questions) * 100)
 

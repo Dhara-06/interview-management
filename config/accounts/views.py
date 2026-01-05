@@ -93,6 +93,10 @@ def login_view(request):
 
         else:
             messages.error(request, "Invalid username or password")
+    # On GET, avoid showing stale messages from other pages (e.g. deletion confirmations).
+    if request.method != "POST":
+        # Consuming the storage iterates and clears any existing messages.
+        list(messages.get_messages(request))
 
     return render(request, "accounts/login.html")
 

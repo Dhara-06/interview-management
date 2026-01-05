@@ -134,7 +134,9 @@
             </form>
 
             {% for message in messages %}
-            <div class="error-message">{{ message }}</div>
+                {% if 'error' in message.tags %}
+                    <div class="error-message">{{ message }}</div>
+                {% endif %}
             {% endfor %}
 
             <p style="text-align:center; margin-top:15px; font-size:14px;">
