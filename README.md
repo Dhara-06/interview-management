@@ -6,8 +6,6 @@
 
 AI-powered platform for managing technical interviews, built with Django.
 
-**Demo:** [Watch here](https://drive.google.com/file/d/1EMaKRDTNWxauGB0uLGBODeF33P6EJbKe/view?usp=sharing)
-
 ---
 
 ## Features
