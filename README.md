@@ -61,11 +61,6 @@ AI-powered platform for managing technical interviews, built with Django.
    - HR: Register as HR, create interviews, view results
    - Candidate: Register as Candidate, upload resume, take interviews
 
-## Deployment
-
-- See [`deploy.py`](deploy.py) for deployment preparation steps.
-- Ready for Vercel, Heroku, or Railway (see `vercel.json` for Vercel config).
-
 ## File Structure
 
 - `config/` – Django project settings and core config
