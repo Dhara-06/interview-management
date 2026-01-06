@@ -52,17 +52,12 @@ AI-powered platform for managing technical interviews, built with Django.
    python config/manage.py migrate
    ```
 
-5. **Create a superuser (optional):**
-   ```sh
-   python config/manage.py createsuperuser
-   ```
-
-6. **Start the server:**
+5. **Start the server:**
    ```sh
    python config/manage.py runserver
    ```
 
-7. **Access the app:**
+6. **Access the app:**
    - HR: Register as HR, create interviews, view results
    - Candidate: Register as Candidate, upload resume, take interviews
 
