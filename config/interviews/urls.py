@@ -7,6 +7,7 @@ urlpatterns = [
     path("<int:interview_id>/start/", views.interview_session, name="interview_session"),
     path("hr/create/", views.hr_create_interview, name="hr_create_interview"),
     path("hr/edit/<int:interview_id>/", views.hr_edit_interview, name="hr_edit_interview"),
+    path("hr/delete/<int:interview_id>/", views.hr_delete_interview, name="hr_delete_interview"),
     path("<int:interview_id>/chat/", views.ai_chat, name="ai_chat"),
     path("<int:interview_id>/callback/", views.api_callback, name="api_callback"),
     path("hr/results/", views.hr_results, name="hr_results"),

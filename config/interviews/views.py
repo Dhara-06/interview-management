@@ -200,6 +200,29 @@ def hr_edit_interview(request, interview_id):
 
 @login_required
 @require_POST
+def hr_delete_interview(request, interview_id):
+    """Allow HR users to delete interviews they created."""
+    interview = get_object_or_404(Interview, id=interview_id)
+    
+    # Only the creator (HR) may delete
+    if interview.created_by != request.user:
+        messages.error(request, "You do not have permission to delete this interview.")
+        return redirect("hr_dashboard")
+    
+    # Check if there are any interview results for this interview
+    results = InterviewResult.objects.filter(interview=interview)
+    if results.exists():
+        messages.error(request, "Cannot delete interview with existing results. Delete results first.")
+        return redirect("hr_dashboard")
+    
+    # Delete the interview
+    interview.delete()
+    messages.success(request, "Interview deleted successfully.")
+    return redirect("hr_dashboard")
+
+
+@login_required
+@require_POST
 def ai_chat(request, interview_id):
     """Simple endpoint to handle chat messages from the candidate and return AI responses."""
     interview = get_object_or_404(Interview, id=interview_id)
