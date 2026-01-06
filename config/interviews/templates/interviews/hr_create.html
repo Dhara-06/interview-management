@@ -112,13 +112,13 @@
           if(el.tagName.toLowerCase() === 'select') el.classList.add('form-select');
         });
 
-        // make textareas a bit taller for readability
+       
         form.querySelectorAll('textarea').forEach(function(t){ t.rows = Math.max(3, (t.rows || 3)); });
 
-        // autofocus title if present
+        
         const title = document.getElementById('id_title'); if(title) title.focus();
 
-        // constrain number_of_questions
+       
         const num = document.getElementById('id_number_of_questions');
         if(num){ num.min = 1; num.max = 50; }
       });
