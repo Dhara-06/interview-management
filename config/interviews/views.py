@@ -16,8 +16,22 @@ import json
 @login_required
 def interview_detail(request, interview_id):
     interview = get_object_or_404(Interview, id=interview_id)
+    
+    # Get user role
+    user_role = None
+    try:
+        profile = Profile.objects.get(user=request.user)
+        user_role = profile.role
+    except Profile.DoesNotExist:
+        pass
+    
+    # Check if user is the creator of this interview
+    is_creator = interview.created_by == request.user
+    
     return render(request, "interviews/interview_detail.html", {
-        "interview": interview
+        "interview": interview,
+        "user_role": user_role,
+        "is_creator": is_creator
     })
 
 @login_required
