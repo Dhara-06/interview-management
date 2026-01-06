@@ -123,6 +123,17 @@
         }
     }, 1000);
 
+    // Focus textarea and position cursor at the beginning
+    document.addEventListener('DOMContentLoaded', function() {
+        const answerTextarea = document.getElementById('answer');
+        if (answerTextarea) {
+            // Focus the textarea
+            answerTextarea.focus();
+            // Set cursor position to the beginning
+            answerTextarea.setSelectionRange(0, 0);
+        }
+    });
+
    
     (function(){
         const pb = document.getElementById('progress-bar');

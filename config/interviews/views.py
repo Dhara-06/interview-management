@@ -281,8 +281,21 @@ def api_callback(request, interview_id):
 
 @login_required
 def hr_results(request):
-    # Show all results to HR users (could be filtered)
-    persisted = list(InterviewResult.objects.select_related('candidate', 'interview').order_by('-created_at'))
+    # Show only results for interviews created by this HR user
+    try:
+        profile = Profile.objects.get(user=request.user)
+    except Profile.DoesNotExist:
+        messages.error(request, "Profile not found. Access denied.")
+        return redirect("hr_dashboard")
+    
+    if profile.role != "HR":
+        messages.error(request, "Only HR users can view results.")
+        return redirect("candidate_dashboard")
+    
+    # Filter results to show only interviews created by this HR user
+    persisted = list(InterviewResult.objects.filter(
+        interview__created_by=request.user
+    ).select_related('candidate', 'interview').order_by('-created_at'))
 
     # Build a list of result objects. Start with persisted InterviewResult records.
     results_list = []
@@ -293,7 +306,10 @@ def hr_results(request):
 
     # For any interview/candidate pairs that have answers but no InterviewResult yet,
     # compute an aggregated score and include them as transient results.
-    agg = InterviewAnswer.objects.values('interview_id', 'candidate_id').annotate(
+    # Filter to show only interviews created by this HR user
+    agg = InterviewAnswer.objects.filter(
+        interview__created_by=request.user
+    ).values('interview_id', 'candidate_id').annotate(
         avg_score=Avg('ai_score'), last_seen=Max('created_at')
     )
 
