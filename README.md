@@ -6,8 +6,6 @@
 
 AI-powered platform for managing technical interviews, built with Django.
 
----
-
 ## Features
 
 - **Role-based access:** HR and Candidate user flows
