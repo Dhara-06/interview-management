@@ -24,7 +24,7 @@ services:
       - key: CSRF_COOKIE_SECURE
         value: True
       - key: GOOGLE_API_KEY
-        sync: false
+        value: AIzaSyDOiMr_X5FKkMAeOHxZJwQ1qXoAA-EAhks
 
   # PostgreSQL Database (optional - uncomment to use)
   # - type: postgres
