@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>HR Dashboard | AI Interviewer</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            :root{
+                --brand-1: #2563eb; 
+                --brand-2: #7c3aed; 
+                --accent: #06b6d4; 
+                --muted: #6b7280;
+            }
+            body { background: linear-gradient(180deg,#f8fafc 0%, #f1f5f9 100%); }
+            .card-hero { background: linear-gradient(90deg, var(--brand-1), var(--brand-2)); color:#fff; }
+            .brand { color: #fff; }
+            .btn-gradient{ background: linear-gradient(90deg,var(--brand-1),var(--brand-2)); border:0; color:#fff }
+            .table thead th { background: linear-gradient(90deg,#eef2ff,#fff); }
+            .badge-questions{ background: var(--accent); color:#052f2f; }
+            .tag { display:inline-block; padding:4px 8px; border-radius:999px; background:rgba(124,58,237,0.12); color:var(--brand-2); font-weight:600; }
+            tr:hover td{ background: rgba(37,99,235,0.03); }
+        </style>
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="#">AI Interviewer</a>
+                <div>
+                    <a class="btn btn-outline-primary me-2" href="{% url 'hr_results' %}">View Results</a>
+                    <a class="btn btn-primary" href="{% url 'hr_create_interview' %}">Create Interview</a>
+                    <a class="btn btn-link ms-3 text-danger" href="{% url 'logout' %}">Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container py-5">
+            <div class="row mb-4">
+                <div class="col-md-8 d-flex align-items-center">
+                    <div>
+                        <h2 class="mb-0">Welcome, {{ hr_name }}</h2>
+                        <p class="text-muted">Manage interviews and review candidate performance.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                  <div class="card-body">
+                  <h5 class="card-title">Your Interviews</h5>
+
+                    {% if interviews %}
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Description</th>
+                                        <th>Questions</th>
+                                        <th>Created</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for interview in interviews %}
+                                        <tr>
+                                                <td class="fw-semibold">{{ interview.title }}</td>
+                                            <td class="text-muted" style="max-width:400px">{{ interview.description|truncatechars:120 }}</td>
+                                            <td><span class="badge badge-questions">{{ interview.number_of_questions }}</span></td>
+                                            <td class="text-muted">{{ interview.created_at|date:'M d, Y' }}</td>
+                                            <td class="text-end">
+                                                <a class="btn btn-sm btn-outline-info me-2" href="{% url 'interview_detail' interview.id %}">View</a>
+                                                <a class="btn btn-sm btn-gradient me-2" href="{% url 'hr_edit_interview' interview.id %}">Edit</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">You haven't created any interviews yet. Click "Create Interview" to get started.</div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+</html>
