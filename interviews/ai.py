@@ -1,5 +1,4 @@
 import google.generativeai as genai
-from google.generativeai.types import HarmCategory, HarmBlockStrategy
 from django.conf import settings
 import random
 import logging
