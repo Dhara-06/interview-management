@@ -1,5 +1,5 @@
-from google import genai
-from google.genai.errors import ClientError
+import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockStrategy
 from django.conf import settings
 import random
 import logging
@@ -8,7 +8,7 @@ import re
 
 logger = logging.getLogger(__name__)
 
-client = genai.Client(api_key=settings.GOOGLE_API_KEY)
+genai.configure(api_key=settings.GOOGLE_API_KEY)
 
 # Fallback questions grouped by skill area. Used only when the API call fails.
 FALLBACK_BY_SKILL = {
@@ -87,10 +87,8 @@ Keep the question focused and unambiguous.
         recent_norm = [_normalize(q) for q in (asked_questions or []) if q]
 
         for attempt in range(max_attempts):
-            response = client.models.generate_content(
-                model="models/gemini-flash-lite-latest",
-                contents=prompt
-            )
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt)
             text = response.text.strip()
             norm_text = _normalize(text)
             is_duplicate = False
@@ -182,13 +180,11 @@ Feedback: <text>
 """
 
     try:
-        response = client.models.generate_content(
-            model="models/gemini-flash-lite-latest",
-            contents=prompt
-        )
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
         return response.text.strip()
 
-    except ClientError:
+    except Exception as e:
         return "Score: 5\nFeedback: Answer recorded successfully."
 
 
@@ -221,12 +217,10 @@ Respond as the AI interviewer: give a concise reply, optionally asking a follow-
 """
 
     try:
-        response = client.models.generate_content(
-            model="models/gemini-flash-lite-latest",
-            contents=prompt
-        )
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
         return response.text.strip()
 
-    except ClientError:
+    except Exception as e:
         # fallback
         return "I'm sorry, I couldn't process that right now. Please try again."
