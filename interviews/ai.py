@@ -7,7 +7,14 @@ import re
 
 logger = logging.getLogger(__name__)
 
-genai.configure(api_key=settings.GOOGLE_API_KEY)
+# Check if API key is configured
+if not settings.GOOGLE_API_KEY:
+    logger.warning("GOOGLE_API_KEY is not configured. Using fallback questions only.")
+
+try:
+    genai.configure(api_key=settings.GOOGLE_API_KEY)
+except Exception as e:
+    logger.error("Failed to configure Google AI: %s", e)
 
 # Fallback questions grouped by skill area. Used only when the API call fails.
 FALLBACK_BY_SKILL = {
@@ -140,9 +147,9 @@ Keep the question focused and unambiguous.
         # Last resort: return any pool item
         return random.choice(pool)
 
-    except ClientError as e:
+    except Exception as e:
         # Log the error so we can see why the model call failed.
-        logger.exception("AI generate_question ClientError: %s", e)
+        logger.exception("AI generate_question error: %s", e)
 
         # Choose a fallback based on keywords in required_skills or title
         skills_text = (interview.required_skills or '') + ' ' + (interview.title or '')
