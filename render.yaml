@@ -16,7 +16,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        value: .onrender.com
+        value: interview-management-4.onrender.com,.onrender.com
       - key: SECURE_SSL_REDIRECT
         value: True
       - key: SESSION_COOKIE_SECURE
