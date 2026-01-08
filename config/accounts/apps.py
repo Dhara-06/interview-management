@@ -6,4 +6,3 @@ class AccountsConfig(AppConfig):
 
     def ready(self):
         pass  # signals disabled for now
-        import accounts.signals
